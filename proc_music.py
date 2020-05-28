@@ -28,19 +28,24 @@ class Music_db(declarative_base()):
 
 def unique_record_music(element: dict, session) -> bool:
     # Проверка на уникальность ошибки
-    result = session.query(exists().where(or_(and_(Music_db.name == element['name'].upper(),
-                                                   Music_db.artist == element['artist'].upper()),
-                                              Music_db.path == element['path']))).scalar()
+    result = session.query(exists().where(
+        # or_(and_(Music_db.name == element['name'].upper(),
+        #                                            Music_db.artist == element['artist'].upper()),
+                                              Music_db.path == element['path']
+            # )
+    )).scalar()
     return not result
 
 
-def new_record_music(element: dict, session):
+async def new_record_music(element: dict, session):
     # Добавление в БД
     try:
         if unique_record_music(element, session):
             record = Music_db(element['name'], element['artist'], element['path'], element['album'], element['year'])
             session.add(record)
             session.commit()
+        else:
+            print('Dublicate file: {0}, {1}'.format(element['name'], element['artist']))
     except Exception as e:
         session.rollback()
         print('dbError:', element['name'], element['artist'], e)
@@ -59,11 +64,16 @@ def get_atr(element: object, folder) -> dict:
         el_path = folder + element.audio.attributes[1].file_name
         el_album = 'NaN'
         el_year = element.audio.attributes[0].duration
-        attribute = {'name': el_name,
-                     'artist': el_artist,
-                     'path': el_path,
-                     'album': el_album,
-                     'year': el_year}
+        attribute = create_dict(el_name, el_artist, el_path, el_album, el_year)
     except Exception as e:
         print(e)
+    return attribute
+
+
+def create_dict(in_name: str, in_artist: str, in_path: str, in_album: str, in_year: int):
+    attribute = {'name': in_name,
+                 'artist': in_artist,
+                 'path': in_path,
+                 'album': in_album,
+                 'year': in_year}
     return attribute
