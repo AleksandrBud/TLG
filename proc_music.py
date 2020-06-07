@@ -1,6 +1,6 @@
 from sqlalchemy.sql import exists
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import and_, or_
+# from sqlalchemy import and_, or_
 from sqlalchemy import Column, String, BIGINT, Integer
 
 
@@ -66,6 +66,7 @@ def get_atr(element: object, folder) -> dict:
         el_year = element.audio.attributes[0].duration
         attribute = create_dict(el_name, el_artist, el_path, el_album, el_year)
     except Exception as e:
+        attribute = 'error'
         print(e)
     return attribute
 

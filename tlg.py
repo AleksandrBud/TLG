@@ -6,111 +6,98 @@ import os
 import proc_chat
 import proc_error
 import proc_music
+import proc_films
+import proc_book
 from telethon.sync import TelegramClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-def download(dialog_id, mess, task):
-    try:
-        task
-        print(f'Complate {mess.audio.attributes[1].file_name}')
-    except Exception as e:
-        print(dialog_id, mess.id, '1', e.__str__())
-        proc_error.process_exeption(dialog_id, mess.id, '1', e.__str__(), session)
+# def download(dialog_id, mess, task):
+#     try:
+#         await globals()['task_%s' % n]
+#         fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+#         print(f'Complate {fn}')
+#     except Exception as e:
+#         print(dialog_id, globals()['mess_id%s' % n].id, e.__str__())
+#         proc_error.process_exeption(dialog.id,
+#                                     globals()['mess_id%s' % n].id,
+#                                     '1',
+#                                     e.__str__(),
+#                                     session)
 
 
-async def process_music(dialog: object, folder, category):
+async def process_chat(dialog: object, folder, category):
     # Обработка чатов с музыкой
     msg_list = []
     lst_date = proc_chat.get_last_date(dialog.id, session)
     # list_chat_errors = get_chat_errors(dialog.id)
+    # Сообщения которые мы не обрабатывали
     async for msg in client.iter_messages(dialog):
         if lst_date < msg.date.replace(tzinfo=None) \
                 and ((category == 'music' and msg.audio)
-                     or (category == 'book' and msg.file)
+                     or (category == 'book' and msg.document)
                      or (category == 'app' and msg.file)
                      or (category == 'film' and msg.video)):
             msg_list.append(msg)
     i = 0
-
     for element in msg_list:
+        if category == 'music':
+            element_atr = proc_music.get_atr(element, folder)
+            await proc_music.new_record_music(element_atr, session)
+        elif category == 'book':
+            element_atr = proc_book.get_atr(element, folder)
+            await proc_book.new_record(element_atr, session)
+        elif category == 'app':
+            pass
+        elif category == 'films':
+            pass
+        else:
+            pass
         # Определяет количество потоков загрузки
         if i >= 20:
-            print(i)
+            # Когда собрали нужное количество потоков, начинаем грузить
             for n in range(1, i + 1):
                 try:
                     await globals()['task_%s' % n]
                     # if globals()['mess_id%s' % n].id in list_chat_errors:
                     #     delete_record_err(dialog.id, globals()['mess_id%s' % n].id)
-                    fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                    # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                    fn = globals()['class_%s' % n]['name']
                     print(f'Complate {fn}')
                 except Exception as e:
                     print(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__())
                     await proc_error.process_exeption(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__(),
                                                       session)
             i = 0
-        # process_file = folder + element.document.attributes[1].file_name
-        # if not path.exists(process_file) \
-        #         or path.getsize(process_file) == 0:
-        #     if path.exists(process_file) \
-        #             and path.getsize(process_file) == 0:
-        #         remove(process_file)
-        #
-
-        if category == 'music':
-            music_atr = proc_music.get_atr(element, folder)
-
         try:
             # Создаем задачу на загрузку файлов
-            proc_music.new_record_music(music_atr, session)
-            if not os.path.exists(music_atr['path']):
+            if not os.path.exists(element_atr['path']):
                 i = i + 1
                 globals()['task_%s' % i] = client.loop.create_task(element.download_media(folder))
                 globals()['mess_id%s' % i] = element
-                globals()['class_%s' % i] = music_atr
+                globals()['class_%s' % i] = element_atr
         except Exception as e:
             # Обработка исключения
             print(dialog.id, element.id, e.__str__())
             proc_error.process_exeption(dialog.id, element.id, '1', e.__str__(), session)
     else:
         if i != 0:
-            print(i)
             for n in range(1, i + 1):
+                # download(dialog.id)
                 try:
                     await globals()['task_%s' % n]
-                    fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                    # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                    fn = globals()['class_%s' % n]['name']
                     print(f'Complate {fn}')
                 except Exception as e:
                     print(dialog.id, globals()['mess_id%s' % n].id, e.__str__())
                     proc_error.process_exeption(dialog.id,
-                                                      globals()['mess_id%s' % n].id,
-                                                      '1',
-                                                      e.__str__(),
-                                                      session)
+                                                globals()['mess_id%s' % n].id,
+                                                '1',
+                                                e.__str__(),
+                                                session)
     proc_chat.update_last_date(dialog.id, dialog.date, session)
-
-
-async def process_films(dialog: object):
-    # Обработка чатов с видео
-    msg_list = []
-    lst_date = proc_chat.get_last_date(dialog.id, session)
-    # list_chat_errors = get_chat_errors(dialog.id)
-    async for msg in client.iter_messages(dialog):
-        if lst_date < msg.date.replace(tzinfo=None) \
-                and msg.video:
-            msg_list.append(msg)
-
-
-async def process_book(dialog: object):
-    # Обработка чатов с видео
-    msg_list = []
-    lst_date = proc_chat.get_last_date(dialog.id, session)
-    # list_chat_errors = get_chat_errors(dialog.id)
-    async for msg in client.iter_messages(dialog):
-        if lst_date < msg.date.replace(tzinfo=None) \
-                and msg.file:
-            msg_list.append(msg)
 
 
 async def main():
@@ -156,19 +143,18 @@ async def main():
                     music_path = '/home/aleksandr/music/'
                     if not os.path.exists(music_path):
                         os.mkdir(music_path)
-                await process_music(dialog, folder=music_path, category='music')
+                # await process_chat(dialog, folder=music_path)  # , category='music')
             elif type_chat == 'film':
-                # await process_films(dialog)
+                # await proc_films.process_films(dialog)
                 pass
             elif type_chat == 'book':
-                # await process_music(dialog, folder=f'/home/aleksandr/book/', category='book')
-                pass
+                await process_chat(dialog, folder='/home/aleksandr/Yandex.Disk/Book/', category='book')
+                # pass
             elif type_chat == 'app':
-                # await process_music(dialog, folder=f'/home/aleksandr/app/', category='app')
+                # await process_chat(dialog, folder='~/google-drive/app/', category='app')
                 pass
             elif type_chat == 'people':
-                # await process_book(dialog)
-                # await process_music(dialog, folder=f'/home/aleksandr/app/', category='people')
+                # await process_chat(dialog, folder='/home/aleksandr/app/', category='people')
                 pass
             else:
                 pass
