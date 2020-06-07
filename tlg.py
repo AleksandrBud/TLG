@@ -39,10 +39,11 @@ async def process_chat(dialog: object, folder, category):
                 and ((category == 'music' and msg.audio)
                      or (category == 'book' and msg.document)
                      or (category == 'app' and msg.document and not msg.video)
-                     or (category == 'film' and msg.video)):
+                     or (category == 'film' and (msg.video or msg.buttons))):
             msg_list.append(msg)
     i = 0
     for element in msg_list:
+        download = True
         if category == 'music':
             element_atr = proc_music.get_atr(element, folder)
             await proc_music.new_record_music(element_atr, session)
@@ -52,37 +53,41 @@ async def process_chat(dialog: object, folder, category):
         elif category == 'app':
             element_atr = proc_app.get_atr(element, folder)
             await proc_app.new_record(element_atr, session)
-        elif category == 'films':
-            pass
+        elif category == 'film':
+            element_atr = proc_films.get_atr(element, folder)
+            await proc_films.new_record(element_atr, session)
+            if not element.vido:
+                download = False
         else:
             pass
         # Определяет количество потоков загрузки
-        if i >= 20:
-            # Когда собрали нужное количество потоков, начинаем грузить
-            for n in range(1, i + 1):
-                try:
-                    await globals()['task_%s' % n]
-                    # if globals()['mess_id%s' % n].id in list_chat_errors:
-                    #     delete_record_err(dialog.id, globals()['mess_id%s' % n].id)
-                    # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
-                    fn = globals()['class_%s' % n]['name']
-                    print(f'Complate {fn}')
-                except Exception as e:
-                    print(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__())
-                    await proc_error.process_exeption(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__(),
-                                                      session)
-            i = 0
-        try:
-            # Создаем задачу на загрузку файлов
-            if not os.path.exists(element_atr['path']):
-                i = i + 1
-                globals()['task_%s' % i] = client.loop.create_task(element.download_media(folder))
-                globals()['mess_id%s' % i] = element
-                globals()['class_%s' % i] = element_atr
-        except Exception as e:
-            # Обработка исключения
-            print(dialog.id, element.id, e.__str__())
-            proc_error.process_exeption(dialog.id, element.id, '1', e.__str__(), session)
+        if download:
+            if i >= 20:
+                # Когда собрали нужное количество потоков, начинаем грузить
+                for n in range(1, i + 1):
+                    try:
+                        await globals()['task_%s' % n]
+                        # if globals()['mess_id%s' % n].id in list_chat_errors:
+                        #     delete_record_err(dialog.id, globals()['mess_id%s' % n].id)
+                        # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                        fn = globals()['class_%s' % n]['name']
+                        print(f'Complate {fn}')
+                    except Exception as e:
+                        print(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__())
+                        await proc_error.process_exeption(dialog.id, globals()['mess_id%s' % n].id, '1', e.__str__(),
+                                                          session)
+                i = 0
+            try:
+                # Создаем задачу на загрузку файлов
+                if not os.path.exists(element_atr['path']):
+                    i = i + 1
+                    globals()['task_%s' % i] = client.loop.create_task(element.download_media(folder))
+                    globals()['mess_id%s' % i] = element
+                    globals()['class_%s' % i] = element_atr
+            except Exception as e:
+                # Обработка исключения
+                print(dialog.id, element.id, e.__str__())
+                proc_error.process_exeption(dialog.id, element.id, '1', e.__str__(), session)
     else:
         if i != 0:
             for n in range(1, i + 1):
@@ -147,14 +152,14 @@ async def main():
                         os.mkdir(music_path)
                 # await process_chat(dialog, folder=music_path)  # , category='music')
             elif type_chat == 'film':
-                # await proc_films.process_films(dialog)
-                pass
+                await process_chat(dialog, folder='/home/aleksandr/Видео/', category='film')
+                # pass
             elif type_chat == 'book':
                 # await process_chat(dialog, folder='/home/aleksandr/Yandex.Disk/Book/', category='book')
                 pass
             elif type_chat == 'app':
-                await process_chat(dialog, folder='/home/aleksandr/google-drive/app/', category='app')
-                # pass
+                # await process_chat(dialog, folder='/home/aleksandr/google-drive/app/', category='app')
+                pass
             elif type_chat == 'people':
                 # await process_chat(dialog, folder='/home/aleksandr/app/', category='people')
                 pass
