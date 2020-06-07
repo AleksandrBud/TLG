@@ -4,25 +4,28 @@ from sqlalchemy import Column, String, BIGINT, Integer
 
 
 class App_db(declarative_base()):
-    __tablename__ = 'book'
-    book_id = Column(BIGINT, primary_key=True)
+    __tablename__ = 'app'
+    app_id = Column(BIGINT, primary_key=True)
     name = Column(String(100))
-    author = Column(String(100))
+    developer = Column(String(100))
     path = Column(String(200))
-    year = Column(Integer)
+    version = Column(String(30))
     language = Column(String(3))
+    description = Column(String(1000))
 
     def __init__(self,
                  name: String,
-                 author: String,
+                 developer: String,
                  path_tr: String,
-                 year: Integer,
-                 language: String):
+                 version: Integer,
+                 language: String,
+                 description: String):
         self.name = name
-        self.author = author
+        self.developer = developer
         self.path = path_tr
-        self.year = year
+        self.version = version
         self.language = language
+        self.description = description
 
 
 def unique_record(element: dict, session) -> bool:
@@ -35,7 +38,12 @@ async def new_record(element: dict, session):
     # Добавление в БД
     try:
         if unique_record(element, session):
-            record = App_db(element['name'], element['author'], element['path'], element['year'], element['language'])
+            record = App_db(element['name'],
+                            element['developer'],
+                            element['path'],
+                            element['version'],
+                            element['language'],
+                            element['description'])
             session.add(record)
             session.commit()
         else:
@@ -47,22 +55,37 @@ async def new_record(element: dict, session):
 
 def get_atr(element: object, folder) -> dict:
     try:
-        el_name = element.document.attributes[0].file_name.upper()
-        el_author = 'NaN'
-        el_path = folder + element.document.attributes[0].file_name
-        el_year = 0
+        if element.document.attributes[0].file_name is not None:
+            el_name = element.document.attributes[0].file_name.upper()
+        else:
+            el_name = element.document.attributes[1].file_name.upper()
+        # el_name = element.document.attributes[0].file_name.upper()
+        el_developer = 'NaN'
+        if element.document.attributes[0].file_name is not None:
+            el_path = element.document.attributes[0].file_name.upper()
+        else:
+            el_path = element.document.attributes[1].file_name.upper()
+        # el_path = folder + element.document.attributes[0].file_name
+        el_version = 'NaN'
         el_language = 'NaN'
-        attribute = create_dict(el_name, el_author, el_path, el_year, el_language)
+        el_description = 'NaN'
+        attribute = create_dict(el_name, el_developer, el_path, el_version, el_language, el_description)
     except Exception as e:
         attribute = {'error': 'Error create attributes'}
         print(e)
     return attribute
 
 
-def create_dict(in_name: str, in_author: str, in_path: str, in_year: int, in_language: str):
+def create_dict(in_name: str,
+                in_developer: str,
+                in_path: str,
+                in_version: int,
+                in_language: str,
+                in_description: str):
     attribute = {'name': in_name,
-                 'author': in_author,
+                 'developer': in_developer,
                  'path': in_path,
-                 'year': in_year,
-                 'language': in_language}
+                 'version': in_version,
+                 'language': in_language,
+                 'description': in_description}
     return attribute

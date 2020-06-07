@@ -6,6 +6,7 @@ import os
 import proc_chat
 import proc_error
 import proc_music
+import proc_app
 import proc_films
 import proc_book
 from telethon.sync import TelegramClient
@@ -37,7 +38,7 @@ async def process_chat(dialog: object, folder, category):
         if lst_date < msg.date.replace(tzinfo=None) \
                 and ((category == 'music' and msg.audio)
                      or (category == 'book' and msg.document)
-                     or (category == 'app' and msg.file)
+                     or (category == 'app' and msg.document and not msg.video)
                      or (category == 'film' and msg.video)):
             msg_list.append(msg)
     i = 0
@@ -49,7 +50,8 @@ async def process_chat(dialog: object, folder, category):
             element_atr = proc_book.get_atr(element, folder)
             await proc_book.new_record(element_atr, session)
         elif category == 'app':
-            pass
+            element_atr = proc_app.get_atr(element, folder)
+            await proc_app.new_record(element_atr, session)
         elif category == 'films':
             pass
         else:
@@ -148,11 +150,11 @@ async def main():
                 # await proc_films.process_films(dialog)
                 pass
             elif type_chat == 'book':
-                await process_chat(dialog, folder='/home/aleksandr/Yandex.Disk/Book/', category='book')
-                # pass
-            elif type_chat == 'app':
-                # await process_chat(dialog, folder='~/google-drive/app/', category='app')
+                # await process_chat(dialog, folder='/home/aleksandr/Yandex.Disk/Book/', category='book')
                 pass
+            elif type_chat == 'app':
+                await process_chat(dialog, folder='/home/aleksandr/google-drive/app/', category='app')
+                # pass
             elif type_chat == 'people':
                 # await process_chat(dialog, folder='/home/aleksandr/app/', category='people')
                 pass
