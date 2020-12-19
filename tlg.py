@@ -158,6 +158,7 @@ async def main():
                 pass
             elif type_chat == 'book':
                 # folder_book = '/home/aleksandr/Yandex.Disk/Book/'
+
                 # folder_book = '/mnt/drive/volume1/Book/'
                 folder_book = main_path + 'book/'
                 if os.path.exists(folder_book):
