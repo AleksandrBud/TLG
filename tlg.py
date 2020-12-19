@@ -142,24 +142,34 @@ async def main():
         else:
             # Чат есть в списке пошли смотреть сообщения
             type_chat = proc_chat.get_type(dialog.id, session)
+            main_path = '/home/aleksandr/Загрузки/'
             if type_chat == 'music':
-                pass
-                if os.path.exists('/mnt/win/Users/budzi/OneDrive/Музыка/music'):
-                    music_path = '/mnt/win/Users/budzi/OneDrive/Музыка/music/'
-                else:
-                    music_path = '/home/aleksandr/music/'
-                    if not os.path.exists(music_path):
-                        os.mkdir(music_path)
-                # await process_chat(dialog, folder=music_path)  # , category='music')
+                # music_path = '/mnt/drive/volume1/Music/music/'
+                # music_path = '/mnt/win/Users/budzi/OneDrive/Музыка/music/'
+                music_path = main_path + 'music/'
+                if os.path.exists(music_path):
+                    await process_chat(dialog, folder=music_path, category='music')
+                # else:
+                #     music_path = '/home/aleksandr/music/'
+                #     if not os.path.exists(music_path):
+                #         os.mkdir(music_path)
             elif type_chat == 'film':
-                await process_chat(dialog, folder='/home/aleksandr/Видео/', category='film')
-                # pass
+                # await process_chat(dialog, folder='/home/aleksandr/Видео/', category='film')
+                pass
             elif type_chat == 'book':
-                # await process_chat(dialog, folder='/home/aleksandr/Yandex.Disk/Book/', category='book')
-                pass
+                # folder_book = '/home/aleksandr/Yandex.Disk/Book/'
+                # folder_book = '/mnt/drive/volume1/Book/'
+                folder_book = main_path + 'book/'
+                if os.path.exists(folder_book):
+                    await process_chat(dialog, folder=folder_book, category='book')
+                # pass
             elif type_chat == 'app':
-                # await process_chat(dialog, folder='/home/aleksandr/google-drive/app/', category='app')
-                pass
+                # folder_app = '/home/aleksandr/google-drive/aplication/'
+                # folder_app = '/mnt/drive/volume1/aplication/'
+                folder_app = main_path + 'app/'
+                if os.path.exists(folder_app):
+                    await process_chat(dialog, folder=folder_app, category='app')
+                # pass
             elif type_chat == 'people':
                 # await process_chat(dialog, folder='/home/aleksandr/app/', category='people')
                 pass

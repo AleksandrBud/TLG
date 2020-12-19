@@ -27,7 +27,11 @@ class Book_db(declarative_base()):
 
 def unique_record(element: dict, session) -> bool:
     # Проверка на уникальность
-    result = session.query(exists().where(Book_db.path == element['path'])).scalar()
+    try:
+        result = session.query(exists().where(Book_db.path == element['path'])).scalar()
+    except Exception as e:
+        print(e)
+        result = True
     return not result
 
 
@@ -54,7 +58,7 @@ def get_atr(element: object, folder) -> dict:
         el_language = 'NaN'
         attribute = create_dict(el_name, el_author, el_path, el_year, el_language)
     except Exception as e:
-        attribute = {'error': 'Error create attributes'}
+        attribute = {'name': 'Error create attributes'}
         print(e)
     return attribute
 
