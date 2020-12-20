@@ -9,6 +9,8 @@ import proc_music
 import proc_app
 import proc_films
 import proc_book
+import demoji
+import re
 from telethon.sync import TelegramClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -120,7 +122,17 @@ async def main():
         if not proc_chat.unique_record(dialog.id, session):
             # Если диалога нет в нашей базе добавим его туда
             print('Add chat to list')
-            mess_bytes = dialog.title.encode()
+            # mess_bytes = dialog.title.encode()
+            chat_title = dialog.title
+            exists_emoji = demoji.findall(chat_title)
+            for emoji in exists_emoji:
+                chat_title = re.sub(emoji, exists_emoji[emoji], chat_title)
+            if len(chat_title) > 50:
+                chat_title = dialog.title
+                exists_emoji = demoji.findall(chat_title)
+                for emoji in exists_emoji:
+                    chat_title = re.sub(emoji, '', chat_title)
+            mess_bytes = chat_title.encode()
             code = chardet.detect(mess_bytes)
             det = chardet.universaldetector.UniversalDetector()
             det.feed(mess_bytes)
@@ -128,14 +140,14 @@ async def main():
                 # Если удалось определить кодировку сообщения, добавляем запись
                 chat_info = {'chat': dialog.id,
                              'type': '0',
-                             'last_date': '2000-01-01 00:00:00',  # dialog.date,
+                             'last_date': '2000-01-01 00:00:00',
                              'name': mess_bytes.decode('UTF-8')}
                 proc_chat.new_record(chat_info, session)
             else:
                 # Если кодировка не определилась добавляем сообщение в ошибку
                 chat_info = {'chat': dialog.id,
                              'type': '0',
-                             'last_date': '2000-01-01 00:00:00',  # dialog.date,
+                             'last_date': '2000-01-01 00:00:00',
                              'name': mess_bytes.decode('UTF-8')}
                 proc_chat.new_record(chat_info, session)
                 print(dialog.id, dialog.title)
@@ -191,6 +203,7 @@ if __name__ == '__main__':
     proxy_server = config['Telegram']['proxy_server']
     proxy_port = config['Telegram']['proxy_port']
     proxy_key = config['Telegram']['proxy_key']
+    demoji.download_codes()
     engine = create_engine(con_db.connect_string())
     session_maker = sessionmaker(bind=engine)
     session = session_maker()
