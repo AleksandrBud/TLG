@@ -34,7 +34,7 @@ def unique_record(element: dict, session) -> bool:
     return not result
 
 
-async def new_record(element: dict, session):
+async def new_record(element: dict, session, logging):
     # Добавление в БД
     try:
         if unique_record(element, session):
@@ -46,14 +46,13 @@ async def new_record(element: dict, session):
                             element['description'])
             session.add(record)
             session.commit()
-        else:
-            print('Dublicate file: {0}'.format(element['name']))
     except Exception as e:
         session.rollback()
-        print('dbError:', element['name'], e)
+        logging.error(f"New record app: {element['name']}, {e}")
+        # print('dbError:', element['name'], e)
 
 
-def get_atr(element: object, folder) -> dict:
+def get_atr(element: object, folder, logging) -> dict:
     try:
         if element.document.attributes[0].file_name is not None:
             el_name = element.document.attributes[0].file_name.upper()
@@ -72,7 +71,8 @@ def get_atr(element: object, folder) -> dict:
         attribute = create_dict(el_name, el_developer, el_path, el_version, el_language, el_description)
     except Exception as e:
         attribute = {'error': 'Error create attributes'}
-        print(e)
+        logging.error(f"get_atr app: {e}")
+        # print(e)
     return attribute
 
 

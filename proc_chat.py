@@ -22,7 +22,7 @@ class TlgChanel(declarative_base()):
 def unique_record(chat: str, session: sessionmaker) -> bool:
     # Проверка на уникальность чата
     result = session.query(exists().where(TlgChanel.chat == chat)).scalar()
-    return result
+    return not result
 
 
 def get_last_date(chat: str, session: sessionmaker) -> DateTime:
@@ -31,14 +31,15 @@ def get_last_date(chat: str, session: sessionmaker) -> DateTime:
     return result[0].last_date
 
 
-def update_last_date(chat: str, new_last_date: DateTime, session: sessionmaker):
+def update_last_date(chat: str, new_last_date: DateTime, session: sessionmaker, logging):
     try:
         result = session.query(TlgChanel).filter(TlgChanel.chat == chat). \
             update({TlgChanel.last_date: new_last_date}, synchronize_session=False)
         session.commit()
     except Exception as e:
         session.rollback()
-        print('dbError:', chat, new_last_date, e)
+        logging.error(f"Update last date: {chat}, {new_last_date}, {e}")
+        # print('dbError:', chat, new_last_date, e)
 
 
 def get_type(chat: str, session: sessionmaker) -> String:
@@ -47,7 +48,7 @@ def get_type(chat: str, session: sessionmaker) -> String:
     return result[0].type
 
 
-def new_record(element: dict, session: sessionmaker) -> int:
+def new_record(element: dict, session: sessionmaker, logging) -> int:
     # Добавление чата
     try:
         record = TlgChanel(element['chat'], element['type'], element['last_date'], element['name'])
@@ -56,5 +57,6 @@ def new_record(element: dict, session: sessionmaker) -> int:
         return 0
     except Exception as e:
         session.rollback()
-        print('dbError:', element['chat'], element['name'], e)
+        logging.error(f"Update last date: {element['chat']}, {element['name']}, {e}")
+        # print('dbError:', element['chat'], element['name'], e)
         return 1

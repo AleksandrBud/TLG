@@ -27,15 +27,11 @@ class Book_db(declarative_base()):
 
 def unique_record(element: dict, session) -> bool:
     # Проверка на уникальность
-    try:
-        result = session.query(exists().where(Book_db.path == element['path'])).scalar()
-    except Exception as e:
-        print(e)
-        result = True
+    result = session.query(exists().where(Book_db.path == element['path'])).scalar()
     return not result
 
 
-async def new_record(element: dict, session):
+async def new_record(element: dict, session, logging):
     # Добавление в БД
     try:
         if unique_record(element, session):
@@ -46,10 +42,11 @@ async def new_record(element: dict, session):
             print('Dublicate file: {0}'.format(element['name']))
     except Exception as e:
         session.rollback()
-        print('dbError:', element['name'], e)
+        logging.error(f"New record book: {element['name']}, {e}")
+        # print('dbError:', element['name'], e)
 
 
-def get_atr(element: object, folder) -> dict:
+def get_atr(element: object, folder, logging) -> dict:
     try:
         el_name = element.document.attributes[0].file_name.upper()
         el_author = 'NaN'
@@ -59,7 +56,8 @@ def get_atr(element: object, folder) -> dict:
         attribute = create_dict(el_name, el_author, el_path, el_year, el_language)
     except Exception as e:
         attribute = {'name': 'Error create attributes'}
-        print(e)
+        logging.error(f"get_atr book: {e}")
+        # print(e)
     return attribute
 
 

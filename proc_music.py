@@ -37,21 +37,22 @@ def unique_record_music(element: dict, session) -> bool:
     return not result
 
 
-async def new_record_music(element: dict, session):
+async def new_record_music(element: dict, session, logging):
     # Добавление в БД
     try:
         if unique_record_music(element, session):
             record = Music_db(element['name'], element['artist'], element['path'], element['album'], element['year'])
             session.add(record)
             session.commit()
-        else:
-            print('Dublicate file: {0}, {1}'.format(element['name'], element['artist']))
+        # else:
+        #     print('Dublicate file: {0}, {1}'.format(element['name'], element['artist']))
     except Exception as e:
         session.rollback()
-        print('dbError:', element['name'], element['artist'], e)
+        logging.error(f"New record music: {element['name']}, {element['artist']}, {e}")
+        # print('dbError:', element['name'], element['artist'], e)
 
 
-def get_atr(element: object, folder) -> dict:
+def get_atr(element: object, folder, logging) -> dict:
     try:
         if element.audio.attributes[0].title is not None:
             el_name = element.audio.attributes[0].title.upper()
@@ -67,7 +68,8 @@ def get_atr(element: object, folder) -> dict:
         attribute = create_dict(el_name, el_artist, el_path, el_album, el_year)
     except Exception as e:
         attribute = 'error'
-        print(e)
+        logging.error(f"get_atr music: {e}")
+        # print(e)
     return attribute
 
 
