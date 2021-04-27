@@ -9,6 +9,7 @@ import proc_music
 import proc_app
 import proc_films
 import proc_book
+import proc_news
 import demoji
 # import asyncio
 import re
@@ -25,6 +26,7 @@ async def get_messages_from_chat(dialog: object, lst_date, category: str):
                 and ((category == 'music' and msg.audio)
                      or (category == 'book' and msg.document)
                      or (category == 'app' and msg.document and not msg.video)
+                     or (category == 'news')
                      or (category == 'film' and (msg.video or msg.buttons))):
             msg_list.append(msg)
     return msg_list
@@ -43,6 +45,10 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
         elif category == 'app':
             element_atr = proc_app.get_atr(element, folder)
             await proc_app.new_record(element_atr, session)
+        elif category == 'news':
+            download = False
+            element_atr = proc_news.get_atr_tlg(element)
+            await proc_news.new_record(element_atr, session, demoji)
         elif category == 'film':
             element_atr = proc_films.get_atr(element, folder)
             await proc_films.new_record(element_atr, session)
@@ -76,20 +82,21 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
                 print(dialog_id, element.id, e.__str__())
                 proc_error.process_exeption(dialog_id, element.id, '1', e.__str__(), session)
     else:
-        if i != 0:
-            for n in range(1, i + 1):
-                try:
-                    await globals()['task_%s' % n]
-                    # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
-                    fn = globals()['class_%s' % n]['name']
-                    print(f'Complate {fn}')
-                except Exception as e:
-                    print(dialog_id, globals()['mess_id%s' % n].id, e.__str__())
-                    proc_error.process_exeption(dialog_id,
-                                                globals()['mess_id%s' % n].id,
-                                                '1',
-                                                e.__str__(),
-                                                session)
+        if download:
+            if i != 0:
+                for n in range(1, i + 1):
+                    try:
+                        await globals()['task_%s' % n]
+                        # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
+                        fn = globals()['class_%s' % n]['name']
+                        print(f'Complate {fn}')
+                    except Exception as e:
+                        print(dialog_id, globals()['mess_id%s' % n].id, e.__str__())
+                        proc_error.process_exeption(dialog_id,
+                                                    globals()['mess_id%s' % n].id,
+                                                    '1',
+                                                    e.__str__(),
+                                                    session)
 
 
 async def process_chat(dialog: object, folder, category):
@@ -143,7 +150,8 @@ async def main():
         else:
             # Чат есть в списке пошли смотреть сообщения
             type_chat = proc_chat.get_type(dialog.id, session)
-            proc_list = ['music', 'book', 'app']
+            # proc_list = ['music', 'book', 'app']
+            proc_list = ['news']
             if type_chat in proc_list:
                 main_path = '/home/aleksandr/Загрузки/'
                 path_for_save = main_path + type_chat + '/'
