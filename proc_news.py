@@ -38,21 +38,21 @@ def create_dict(date: DateTime, desc: str, link: str, source: int, info: str):
 
 def unique_record(element: dict, session: sessionmaker, element_desc):
     # Проверка на уникальность
-    try:
+    # try:
         # element_desc = element['desc']
         # exists_emoji = demoji.findall(element_desc)
         # for emoji in exists_emoji:
         #     element_desc = re.sub(emoji, exists_emoji[emoji], element_desc)
-        result = session.query(exists().where(and_(News_db.date == element['date'],
-                                                   News_db.description == element_desc
-                                                   ))).scalar()
-    except Exception as e:
-        print(e)
-        result = True
+    result = session.query(exists().where(and_(News_db.date == element['date'],
+                                               News_db.description == element_desc
+                                               ))).scalar()
+    # except Exception as e:
+    #     print(e)
+    #     result = True
     return not result
 
 
-async def new_record(element: dict, session, demoji):
+async def new_record(element: dict, session, demoji, logging):
     # Добавление в БД
     try:
         element_desc = str(element['desc'])
@@ -77,14 +77,13 @@ async def new_record(element: dict, session, demoji):
             record = News_db(element['date'], element_desc, element['link'], element['source'], element_info)
             session.add(record)
             session.commit()
-        else:
-            print('Dublicate file: {0}'.format(element['desc']))
     except Exception as e:
         session.rollback()
-        print('dbError:', element['name'], e)
+        logging.error(f"New record news: {element['name']}, {e}")
+        # print('dbError:', element['name'], e)
 
 
-def get_atr_tlg(element: object) -> dict:
+def get_atr_tlg(element: object, logging) -> dict:
     try:
         el_date = element.date
         el_desc = element.text
@@ -94,7 +93,8 @@ def get_atr_tlg(element: object) -> dict:
         attribute = create_dict(el_date, el_desc, el_link, el_source, el_info)
     except Exception as e:
         attribute = {'name': 'Error create attributes'}
-        print(e)
+        logging.error(f"get_atr news: {e}")
+        # print(e)
     return attribute
 
 

@@ -39,19 +39,20 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
     for element in msg_list:
         download = True
         if category == 'music':
-            element_atr = proc_music.get_atr(element, folder)
-            await proc_music.new_record_music(element_atr, session)
+            element_atr = proc_music.get_atr(element, folder, logging)
+            await proc_music.new_record_music(element_atr, session, logging)
         elif category == 'book':
-            element_atr = proc_book.get_atr(element, folder)
-            await proc_book.new_record(element_atr, session)
+            element_atr = proc_book.get_atr(element, folder, logging)
+            await proc_book.new_record(element_atr, session, logging)
         elif category == 'app':
-            element_atr = proc_app.get_atr(element, folder)
-            await proc_app.new_record(element_atr, session)
+            element_atr = proc_app.get_atr(element, folder, logging)
+            await proc_app.new_record(element_atr, session, logging)
         elif category == 'news':
             download = False
-            element_atr = proc_news.get_atr_tlg(element)
-            await proc_news.new_record(element_atr, session, demoji)
+            element_atr = proc_news.get_atr_tlg(element, logging)
+            await proc_news.new_record(element_atr, session, demoji, logging)
         elif category == 'film':
+            download = False
             element_atr = proc_films.get_atr(element, folder)
             await proc_films.new_record(element_atr, session)
             if not element.vido:
@@ -66,13 +67,13 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
                     try:
                         await globals()['task_%s' % n]
                         fn = globals()['class_%s' % n]['name']
-                        curr_date = strftime('[%Y-%b-%d %H:%M:%S]')
-                        # logger.info(f'{curr_date} Complate {fn}')
-                        print(f'Complate {fn}')
+                        # curr_date = strftime('[%Y-%b-%d %H:%M:%S]')
+                        logging.info(f'Complate download {fn}')
+                        # print(f'Complate {fn}')
                     except Exception as e:
-                        curr_date = strftime('[%Y-%b-%d %H:%M:%S]')
-                        # logger.error(f"{curr_date} ERROR {dialog_id} {globals()['mess_id%s' % n].id}, {e.__str__()}")
-                        print(dialog_id, globals()['mess_id%s' % n].id, '1', e.__str__())
+                        # curr_date = strftime('[%Y-%b-%d %H:%M:%S]')
+                        logging.error(f"{dialog_id} {globals()['mess_id%s' % n].id}, {e}")
+                        # print(dialog_id, globals()['mess_id%s' % n].id, '1', e.__str__())
                         # await proc_error.process_exeption(dialog_id, globals()['mess_id%s' % n].id, '1', e.__str__(),
                         #                                   session)
                 i = 0
@@ -85,9 +86,11 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
                     globals()['class_%s' % i] = element_atr
             except Exception as e:
                 # Обработка исключения
-                print(dialog_id, element.id, e.__str__())
-                proc_error.process_exeption(dialog_id, element.id, '1', e.__str__(), session)
+                logging.error(f"{dialog_id} {globals()['mess_id%s' % n].id}, {e}")
+                # print(dialog_id, element.id, e.__str__())
+                # proc_error.process_exeption(dialog_id, element.id, '1', e.__str__(), session)
     else:
+        # Дозагрузка файлов, если их меньше чем кол-во потоков
         if download:
             if i != 0:
                 for n in range(1, i + 1):
@@ -95,14 +98,16 @@ async def parce_maessages(msg_list: list, dialog_id: int, category: str, folder:
                         await globals()['task_%s' % n]
                         # fn = globals()['mess_id%s' % n].audio.attributes[1].file_name
                         fn = globals()['class_%s' % n]['name']
-                        print(f'Complate {fn}')
+                        logging.info(f'Complate download {fn}')
+                        # print(f'Complate {fn}')
                     except Exception as e:
-                        print(dialog_id, globals()['mess_id%s' % n].id, e.__str__())
-                        proc_error.process_exeption(dialog_id,
-                                                    globals()['mess_id%s' % n].id,
-                                                    '1',
-                                                    e.__str__(),
-                                                    session)
+                        logging.error(f"{dialog_id} {globals()['mess_id%s' % n].id}, {e}")
+                        # print(dialog_id, globals()['mess_id%s' % n].id, e.__str__())
+                        # proc_error.process_exeption(dialog_id,
+                        #                             globals()['mess_id%s' % n].id,
+                        #                             '1',
+                        #                             e.__str__(),
+                        #                             session)
 
 
 async def process_chat(dialog: object, folder, category):
@@ -111,7 +116,7 @@ async def process_chat(dialog: object, folder, category):
     # Сообщения которые мы не обрабатывали
     msg_list = await get_messages_from_chat(dialog, lst_date, category)
     await parce_maessages(msg_list, dialog.id, category, folder)
-    proc_chat.update_last_date(dialog.id, dialog.date, session)
+    proc_chat.update_last_date(dialog.id, dialog.date, session, logging)
 
 
 async def add_new_chat(dialog: object):
@@ -125,39 +130,43 @@ async def add_new_chat(dialog: object):
         for emoji in exists_emoji:
             chat_title = re.sub(emoji, '', chat_title)
     mess_bytes = chat_title.encode()
-    code = chardet.detect(mess_bytes)
-    det = chardet.universaldetector.UniversalDetector()
-    det.feed(mess_bytes)
-    if code['encoding'] is not None:
+    # code = chardet.detect(mess_bytes)
+    # det = chardet.universaldetector.UniversalDetector()
+    # det.feed(mess_bytes)
+    # if code['encoding'] is not None:
         # Если удалось определить кодировку сообщения, добавляем запись
-        chat_info = {'chat': dialog.id,
-                     'type': '0',
-                     'last_date': '2000-01-01 00:00:00',
-                     'name': mess_bytes.decode('UTF-8')}
-        proc_chat.new_record(chat_info, session)
-    else:
-        # Если кодировка не определилась добавляем сообщение в ошибку
-        chat_info = {'chat': dialog.id,
-                     'type': '0',
-                     'last_date': '2000-01-01 00:00:00',
-                     'name': mess_bytes.decode('UTF-8')}
-        proc_chat.new_record(chat_info, session)
-        print(dialog.id, dialog.title)
+    chat_info = {'chat': dialog.id,
+                 'type': '0',
+                 'last_date': '2000-01-01 00:00:00',
+                 'name': mess_bytes.decode('UTF-8')}
+    proc_chat.new_record(chat_info, session, logging)
+    # else:
+    #     # Если кодировка не определилась добавляем сообщение в ошибку
+    #     chat_info = {'chat': dialog.id,
+    #                  'type': '0',
+    #                  'last_date': '2000-01-01 00:00:00',
+    #                  'name': mess_bytes.decode('UTF-8')}
+    #     proc_chat.new_record(chat_info, session)
+    #     print(dialog.id, dialog.title)
+
 
 async def main():
     dialogs = await client.get_dialogs()  # Получаем список диалогов
     for dialog in dialogs:
         # Новый чат добавляем
-        print('Process chat - ' + dialog.name)
-        if not proc_chat.unique_record(dialog.id, session):
+        # print('Process chat - ' + dialog.name)
+        logging.info(f'Process chat - {dialog.name}')
+        if proc_chat.unique_record(dialog.id,
+                                   session):
             # Если диалога нет в нашей базе добавим его туда
-            print('Add chat to list')
+            # print('Add chat to list')
+            logging.info('Add chat in data base.')
             await add_new_chat(dialog)
         else:
             # Чат есть в списке пошли смотреть сообщения
             type_chat = proc_chat.get_type(dialog.id, session)
             # proc_list = ['music', 'book', 'app']
-            proc_list = ['news', 'music', 'book']
+            # proc_list = ['news', 'music', 'book']
             if type_chat in proc_list:
                 main_path = '/home/aleksandr/Загрузки/'
                 path_for_save = main_path + type_chat + '/'
@@ -180,13 +189,18 @@ if __name__ == '__main__':
     proxy_port = config['Telegram']['proxy_port']
     proxy_key = config['Telegram']['proxy_key']
     main_path = '/home/aleksandr/Загрузки/'
-    logging.FileHandler
-    # handler = logging.handlers.RotatingFileHandler('error.log',
-    #                                                maxBytes=500000,
-    #                                                backupCount=5)
-    # logger = logging.getLogger(__name__)
-    # logger.setLevel(logging.INFO)
-    # logger.addHandler(handler)
+    proc_list = [
+                 # 'news',
+                 # 'music',
+                 # 'book',
+                 # 'app',
+                 'film'
+                 ]
+    logging.basicConfig(filename=os.path.realpath(os.path.dirname(__file__)) + '/TLG.log',
+                        level=logging.INFO,
+                        format='%(asctime)s:%(levelname)s:%(message)s',
+                        datefmt='[%Y-%b-%d %H:%M:%S]'
+                        )
 
     demoji.download_codes()
     engine = create_engine(con_db.connect_string())
@@ -201,27 +215,20 @@ if __name__ == '__main__':
     if mode_run_program == 'e':
         @client.on(events.NewMessage())
         async def normal_handler(event):
-            #    print(event.message)
-            # print(event.message.to_dict()['message'])
             chat_id = event.chat_id
             if proc_chat.unique_record(chat_id, session):
                 type_chat = proc_chat.get_type(chat_id, session)
-                proc_list = ['news', 'music', 'book']
+                # proc_list = ['news', 'music', 'book']
                 if type_chat in proc_list:
                     msg_list = [event.message]
                     path_for_save = main_path + type_chat + '/'
                     await parce_maessages(msg_list, chat_id, type_chat, path_for_save)
-                    try:
-                       await event.message.mark_read()
-                    except Exception as e:
-                        print(e)
-
-
+                    await event.message.mark_read()
         client.start()
         client.run_until_disconnected()
     elif mode_run_program == 'l':
         with client:
             client.loop.run_until_complete(main())
-        print('END')
+            logging.info('END PROGRAM')
     else:
-        print('Input mode not found!')
+        logging.info('Input mode not found!')
